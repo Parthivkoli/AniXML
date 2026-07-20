@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AniXML - Convert Anime Lists to AniList XML</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' fill='%232b90d9'>A</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-title">
+                    <h1 class="logo">✨ AniXML</h1>
+                    <p class="subtitle">Convert anime title lists into AniList-importable XML</p>
+                </div>
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+                    <span class="theme-icon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Toolbar -->
+        <nav class="toolbar">
+            <div class="toolbar-group">
+                <button class="btn btn-primary" id="importTxtBtn" aria-label="Import TXT file">
+                    📂 Import TXT
+                </button>
+                <button class="btn btn-secondary" id="pasteBtn" aria-label="Paste from clipboard">
+                    📋 Paste
+                </button>
+                <button class="btn btn-secondary" id="settingsBtn" aria-label="Open settings">
+                    ⚙️ Settings
+                </button>
+            </div>
+            <div class="toolbar-group">
+                <button class="btn btn-success" id="searchBtn" aria-label="Search anime titles" disabled>
+                    🔍 Search
+                </button>
+                <button class="btn btn-info" id="exportBtn" aria-label="Export results" disabled>
+                    📥 Export
+                </button>
+            </div>
+        </nav>
+
+        <!-- Input Section -->
+        <section class="section">
+            <div class="card">
+                <h2>Paste Your Anime List</h2>
+                <p class="section-desc">One title per line. Duplicates will be removed automatically.</p>
+                <textarea 
+                    id="inputTextarea" 
+                    class="input-textarea" 
+                    placeholder="Frieren&#10;Steins;Gate&#10;Death Note&#10;Bocchi the Rock!&#10;Vinland Saga"
+                    spellcheck="false"
+                ></textarea>
+                <div class="input-actions">
+                    <button class="btn btn-secondary" id="clearInputBtn">Clear</button>
+                    <div class="input-stats">
+                        <span id="inputCount" class="stat">Lines: 0</span>
+                        <span id="uniqueCount" class="stat">Unique: 0</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Statistics Cards -->
+        <section class="section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalStat">0</div>
+                    <div class="stat-label">Total Titles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="matchedStat">0</div>
+                    <div class="stat-label">Matched</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="notFoundStat">0</div>
+                    <div class="stat-label">Not Found</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="duplicateStat">0</div>
+                    <div class="stat-label">Duplicates</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Progress Section -->
+        <section class="section" id="progressSection" style="display: none;">
+            <div class="card">
+                <div class="progress-header">
+                    <h3>Search Progress</h3>
+                    <button class="btn btn-small btn-secondary" id="cancelSearchBtn">Cancel</button>
+                </div>
+                <div class="progress-info">
+                    <p id="progressTitle" class="progress-title">Initializing...</p>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <div class="progress-stats">
+                        <span id="progressCompleted">0</span> / <span id="progressTotal">0</span>
+                        <span class="progress-time">Time: <span id="elapsedTime">0s</span></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Table -->
+        <section class="section" id="resultsSection" style="display: none;">
+            <div class="card">
+                <div class="results-header">
+                    <h2>Match Results</h2>
+                    <div class="results-controls">
+                        <input 
+                            type="text" 
+                            id="searchFilter" 
+                            class="search-filter" 
+                            placeholder="Filter results..."
+                            aria-label="Filter results table"
+                        >
+                        <select id="statusFilter" class="status-filter" aria-label="Filter by status">
+                            <option value="all">All Statuses</option>
+                            <option value="matched">✅ Matched</option>
+                            <option value="ambiguous">⚠️ Ambiguous</option>
+                            <option value="notfound">❌ Not Found</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="results-table" id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Original Title</th>
+                                <th>Matched Title</th>
+                                <th>Romaji</th>
+                                <th>English</th>
+                                <th>Year</th>
+                                <th>AniList ID</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 AniXML. Built with ✨ for anime fans.</p>
+                <div class="footer-links">
+                    <a href="https://github.com/Parthivkoli/AniXML" target="_blank" rel="noopener">GitHub</a>
+                    <a href="https://anilist.co" target="_blank" rel="noopener">AniList API</a>
+                    <a href="#">License</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal Templates -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="modal-close" id="closeSettingsBtn" aria-label="Close settings">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-group">
+                    <label for="concurrencyInput">Concurrent Requests:</label>
+                    <input type="number" id="concurrencyInput" min="1" max="10" value="4">
+                </div>
+                <div class="settings-group">
+                    <label for="autoRetryToggle">
+                        <input type="checkbox" id="autoRetryToggle" checked>
+                        Auto Retry on Network Error
+                    </label>
+                </div>
+                <div class="settings-group">
+                    <label for="autoSaveToggle">
+                        <input type="checkbox" id="autoSaveToggle" checked>
+                        Auto Save Progress
+                    </label>
+                </div>
+                <div class="settings-group">
+                    <label for="defaultStatusSelect">Default Export Status:</label>
+                    <select id="defaultStatusSelect">
+                        <option value="Plan to Watch">Plan to Watch</option>
+                        <option value="Watching">Watching</option>
+                        <option value="Completed">Completed</option>
+                        <option value="On Hold">On Hold</option>
+                        <option value="Dropped">Dropped</option>
+                    </select>
+                </div>
+                <div class="settings-group">
+                    <button class="btn btn-secondary" id="resetSessionBtn">Reset Session</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="manualSearchModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Manual Search</h2>
+                <button class="modal-close" id="closeManualSearchBtn" aria-label="Close manual search">✕</button>
+            </div>
+            <div class="modal-body">
+                <input 
+                    type="text" 
+                    id="manualSearchInput" 
+                    class="input-field" 
+                    placeholder="Search for anime..."
+                    aria-label="Manual search input"
+                >
+                <div class="manual-search-results" id="manualSearchResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Export Options</h2>
+                <button class="modal-close" id="closeExportBtn" aria-label="Close export options">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <button class="btn btn-block" id="downloadXmlBtn">📥 Download XML</button>
+                    <button class="btn btn-block" id="downloadXmlGzBtn">📦 Download XML.GZ</button>
+                    <button class="btn btn-block" id="downloadJsonBtn">📊 Download JSON</button>
+                    <button class="btn btn-block" id="downloadCsvBtn">📋 Download CSV</button>
+                    <button class="btn btn-block" id="downloadUnmatchedBtn">❌ Download Unmatched</button>
+                    <button class="btn btn-block" id="copyXmlBtn">📋 Copy XML to Clipboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <script type="module" src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Dist
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Misc
+.env
+.env.local
+.DS_Store
