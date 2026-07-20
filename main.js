@@ -6,10 +6,10 @@
 'use strict';
 
 import { initializeStorage, saveState, loadState, clearState } from './storage.js';
-import { initializeUI, updateStats, showToast, showProgressSection, hideProgressSection, updateProgress, showResultsTable, updateResultsTable, openModal, closeModal } from './ui.js';
+import { initializeUI, syncSettingsUI, updateStats, showToast, showProgressSection, hideProgressSection, updateProgress, showResultsTable, updateResultsTable, openModal, closeModal } from './ui.js';
 import { searchTitles, cancelSearch } from './api.js';
 import { generateXML, generateJSON, generateCSV } from './xml.js';
-import { normalizeTitle, downloadFile, extractUnique, escapeXml, escapeHtml } from './utils.js';
+import { normalizeTitle, cleanInputTitle, downloadFile, extractUnique, escapeXml, escapeHtml } from './utils.js';
 
 let appState = {
     inputTitles: [],
@@ -20,11 +20,26 @@ let appState = {
 };
 
 let settings = {
-    concurrency: 4,
+    concurrency: 8,
     autoRetry: true,
     autoSave: true,
     darkMode: false,
-    defaultStatus: 'Plan to Watch'
+    defaultStatus: 'Plan to Watch',
+    mediaType: 'ANIME'
+};
+
+const THEME_ICONS = {
+    light: `
+        <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.5"></circle>
+            <path d="M12 1.8v2.7M12 19.5v2.7M4.7 4.7l1.9 1.9M17.4 17.4l1.9 1.9M1.8 12h2.7M19.5 12h2.7M4.7 19.3l1.9-1.9M17.4 6.6l1.9-1.9"></path>
+        </svg>
+    `,
+    dark: `
+        <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5c0-.3 0-.6-.1-.9a6.5 6.5 0 0 1-8.4-7.6Z"></path>
+        </svg>
+    `
 };
 
 /**
@@ -46,16 +61,15 @@ async function initializeApp() {
         }
 
         // Initialize UI
-        initializeUI();
+        initializeUI(settings);
 
         // Load dark mode preference
         if (settings.darkMode) {
             document.body.classList.add('dark-mode');
-            document.getElementById('themeToggle').textContent = '☀️';
         } else {
             document.body.classList.remove('dark-mode');
-            document.getElementById('themeToggle').textContent = '🌙';
         }
+        updateThemeToggleIcon();
 
         // Attach event listeners
         attachEventListeners();
@@ -103,6 +117,26 @@ function attachEventListeners() {
             settings.concurrency = parseInt(e.target.value);
             saveState({ ...appState, settings });
         });
+        document.getElementById('mediaTypeSelect').addEventListener('change', (e) => {
+            settings.mediaType = e.target.value;
+
+            const allowedStatuses = settings.mediaType === 'MANGA'
+                ? ['Plan to Read', 'Reading', 'Completed', 'On Hold', 'Dropped']
+                : ['Plan to Watch', 'Watching', 'Completed', 'On Hold', 'Dropped'];
+
+            const defaultStatus = settings.mediaType === 'MANGA' ? 'Plan to Read' : 'Plan to Watch';
+
+            document.getElementById('defaultStatusSelect').innerHTML = allowedStatuses
+                .map(status => `<option value="${status}">${status}</option>`)
+                .join('');
+
+            if (!allowedStatuses.includes(settings.defaultStatus)) {
+                settings.defaultStatus = defaultStatus;
+            }
+
+            document.getElementById('defaultStatusSelect').value = settings.defaultStatus;
+            saveState({ ...appState, settings });
+        });
         document.getElementById('autoRetryToggle').addEventListener('change', (e) => {
             settings.autoRetry = e.target.checked;
             saveState({ ...appState, settings });
@@ -135,6 +169,8 @@ function attachEventListeners() {
 
         // Keyboard shortcuts
         document.addEventListener('keydown', handleKeyboardShortcuts);
+
+        document.addEventListener('clearMatch', handleClearMatch);
 
         // Modal overlay click
         document.querySelectorAll('.modal').forEach(modal => {
@@ -225,7 +261,7 @@ function handleFileRead(file) {
     reader.onload = (e) => {
         const content = e.target.result;
         const textarea = document.getElementById('inputTextarea');
-        textarea.value = content;
+        textarea.value = sanitizeInputList(content);
         updateInputStats();
         showToast('File imported successfully', 'success');
         if (settings.autoSave) {
@@ -245,7 +281,7 @@ async function handlePaste() {
     try {
         const text = await navigator.clipboard.readText();
         const textarea = document.getElementById('inputTextarea');
-        textarea.value = text;
+        textarea.value = sanitizeInputList(text);
         updateInputStats();
         showToast('Pasted from clipboard', 'success');
         if (settings.autoSave) {
@@ -263,7 +299,7 @@ function updateInputStats() {
     const textarea = document.getElementById('inputTextarea');
     const lines = textarea.value
         .split('\n')
-        .map(line => line.trim())
+        .map(line => cleanInputTitle(line))
         .filter(line => line.length > 0);
 
     appState.inputTitles = lines;
@@ -294,22 +330,24 @@ function handleClearInput() {
  * Handle search
  */
 async function handleSearch() {
-    const unique = extractUnique(appState.inputTitles);
+    const unique = extractUnique(appState.inputTitles.map(cleanInputTitle).filter(Boolean));
     if (unique.length === 0) {
         showToast('No titles to search', 'warning');
         return;
     }
+
+    const effectiveConcurrency = unique.length > 100 ? Math.max(settings.concurrency, 10) : settings.concurrency;
 
     appState.searchCancelled = false;
     showProgressSection();
     document.getElementById('searchBtn').disabled = true;
 
     try {
-        const results = await searchTitles(unique, settings.concurrency, settings.autoRetry, (progress) => {
+        const results = await searchTitles(unique, effectiveConcurrency, settings.autoRetry, (progress) => {
             if (!appState.searchCancelled) {
                 updateProgress(progress);
             }
-        });
+        }, settings.mediaType);
 
         if (!appState.searchCancelled) {
             appState.results = results;
@@ -351,8 +389,21 @@ function handleCancelSearch() {
 function handleThemeToggle() {
     document.body.classList.toggle('dark-mode');
     settings.darkMode = document.body.classList.contains('dark-mode');
-    document.getElementById('themeToggle').textContent = settings.darkMode ? '☀️' : '🌙';
+    updateThemeToggleIcon();
     saveState({ ...appState, settings });
+}
+
+/**
+ * Update theme toggle icon state
+ */
+function updateThemeToggleIcon() {
+    const toggle = document.getElementById('themeToggle');
+    if (!toggle) {
+        return;
+    }
+
+    toggle.innerHTML = settings.darkMode ? THEME_ICONS.light : THEME_ICONS.dark;
+    toggle.setAttribute('aria-pressed', String(settings.darkMode));
 }
 
 /**
@@ -367,8 +418,15 @@ function handleResetSession() {
             searchCancelled: false,
             currentSearch: null
         };
+            settings = {
+                ...settings,
+                mediaType: 'ANIME',
+                defaultStatus: 'Plan to Watch'
+            };
         document.getElementById('inputTextarea').value = '';
         document.getElementById('resultsSection').style.display = 'none';
+            syncSettingsUI(settings);
+            updateResultsTable([]);
         updateInputStats();
         clearState();
         closeModal('settingsModal');
@@ -391,8 +449,8 @@ async function handleManualSearch(e) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: `query ($search:String){Media(search:$search,type:ANIME){id title{romaji english native} episodes format seasonYear status}}`,
-                variables: { search: query }
+                query: `query ($search:String, $type: MediaType){Media(search:$search,type:$type){id title{romaji english native} episodes format seasonYear status}}`,
+                variables: { search: query, type: settings.mediaType }
             })
         });
         
@@ -475,7 +533,6 @@ function handleResultsFilter() {
         let matchesSearch = originalTitle.includes(searchText);
         let matchesStatus = statusFilter === 'all' || 
             (statusFilter === 'matched' && status.includes('✅')) ||
-            (statusFilter === 'ambiguous' && status.includes('⚠️')) ||
             (statusFilter === 'notfound' && status.includes('❌'));
 
         row.style.display = matchesSearch && matchesStatus ? '' : 'none';
@@ -491,7 +548,10 @@ function handleDownloadXml() {
             showToast('No results to export', 'warning');
             return;
         }
-        const xml = generateXML(appState.results, settings.defaultStatus);
+        const xml = generateXML(appState.results, {
+            defaultStatus: settings.defaultStatus,
+            mediaType: settings.mediaType
+        });
         downloadFile(xml, 'animelist.xml', 'application/xml');
         showToast('XML downloaded', 'success');
         closeModal('exportModal');
@@ -510,7 +570,10 @@ function handleDownloadXmlGz() {
             showToast('No results to export', 'warning');
             return;
         }
-        const xml = generateXML(appState.results, settings.defaultStatus);
+        const xml = generateXML(appState.results, {
+            defaultStatus: settings.defaultStatus,
+            mediaType: settings.mediaType
+        });
         const compressed = pako.gzip(xml);
         const blob = new Blob([compressed], { type: 'application/gzip' });
         const url = URL.createObjectURL(blob);
@@ -600,7 +663,10 @@ async function handleCopyXml() {
             showToast('No results to copy', 'warning');
             return;
         }
-        const xml = generateXML(appState.results, settings.defaultStatus);
+        const xml = generateXML(appState.results, {
+            defaultStatus: settings.defaultStatus,
+            mediaType: settings.mediaType
+        });
         await navigator.clipboard.writeText(xml);
         showToast('XML copied to clipboard', 'success');
         closeModal('exportModal');
@@ -636,13 +702,43 @@ function handleKeyboardShortcuts(e) {
  * Save current state
  */
 function saveCurrentState() {
-    const unique = extractUnique(appState.inputTitles);
+    const unique = extractUnique(appState.inputTitles.map(cleanInputTitle).filter(Boolean));
     saveState({
         inputTitles: unique,
         results: appState.results,
         duplicates: appState.duplicates,
         settings: settings
     });
+}
+
+function sanitizeInputList(content) {
+    return String(content || '')
+        .replace(/\r\n/g, '\n')
+        .split('\n')
+        .map(cleanInputTitle)
+        .filter(Boolean)
+        .join('\n');
+}
+
+/**
+ * Handle clear match requests from the results table
+ */
+function handleClearMatch(event) {
+    const index = event?.detail?.index;
+    if (typeof index !== 'number' || !appState.results[index]) {
+        return;
+    }
+
+    appState.results[index].matched = null;
+    appState.results[index].status = 'notfound';
+    updateResultsTable(appState.results);
+    updateStats();
+
+    if (settings.autoSave) {
+        saveCurrentState();
+    }
+
+    showToast('Match cleared', 'info');
 }
 
 // Initialize application when DOM is ready

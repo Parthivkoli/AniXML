@@ -9,20 +9,44 @@ import { normalizeTitle, escapeHtml } from './utils.js';
 
 let progressStartTime = 0;
 let progressInterval = null;
+let scrollFrame = null;
 
 /**
  * Initialize UI components
  */
-export function initializeUI() {
-    // Set initial settings values
-    document.getElementById('concurrencyInput').value = '4';
-    document.getElementById('autoRetryToggle').checked = true;
-    document.getElementById('autoSaveToggle').checked = true;
-    document.getElementById('defaultStatusSelect').value = 'Plan to Watch';
+export function initializeUI(settings = {}) {
+    syncSettingsUI(settings);
 
     // Responsive adjustments
     handleResponsiveUI();
     window.addEventListener('resize', handleResponsiveUI);
+    window.addEventListener('scroll', handleScrollUI, { passive: true });
+    handleScrollUI();
+}
+
+/**
+ * Sync the settings controls from the active settings object
+ */
+export function syncSettingsUI(settings = {}) {
+    const mediaType = settings.mediaType || 'ANIME';
+    const statuses = mediaType === 'MANGA'
+        ? ['Plan to Read', 'Reading', 'Completed', 'On Hold', 'Dropped']
+        : ['Plan to Watch', 'Watching', 'Completed', 'On Hold', 'Dropped'];
+    const defaultStatus = statuses.includes(settings.defaultStatus)
+        ? settings.defaultStatus
+        : (mediaType === 'MANGA' ? 'Plan to Read' : 'Plan to Watch');
+
+    document.getElementById('concurrencyInput').value = settings.concurrency ?? 4;
+    document.getElementById('autoRetryToggle').checked = settings.autoRetry ?? true;
+    document.getElementById('autoSaveToggle').checked = settings.autoSave ?? true;
+    document.getElementById('mediaTypeSelect').value = mediaType;
+
+    const statusSelect = document.getElementById('defaultStatusSelect');
+    statusSelect.innerHTML = statuses
+        .map(status => `<option value="${status}">${status}</option>`)
+        .join('');
+    statusSelect.value = defaultStatus;
+    settings.defaultStatus = defaultStatus;
 }
 
 /**
@@ -128,6 +152,10 @@ export function showResultsTable() {
 export function updateResultsTable(results) {
     const tbody = document.getElementById('resultsTableBody');
     tbody.innerHTML = '';
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.disabled = !results || results.length === 0;
+    }
 
     results.forEach((result, index) => {
         const row = document.createElement('tr');
@@ -137,15 +165,15 @@ export function updateResultsTable(results) {
         const statusText = result.matched ? 'Matched' : 'Not Found';
 
         row.innerHTML = `
-            <td>${result.index}</td>
-            <td>${escapeHtml(result.original)}</td>
-            <td>${result.matched ? escapeHtml(result.matched.title) : '-'}</td>
-            <td>${result.matched ? escapeHtml(result.matched.romaji) : '-'}</td>
-            <td>${result.matched ? escapeHtml(result.matched.english) : '-'}</td>
-            <td>${result.matched ? result.matched.year || '-' : '-'}</td>
-            <td>${result.matched ? result.matched.id : '-'}</td>
-            <td><span class="status-icon">${statusIcon}</span> ${statusText}</td>
-            <td>
+            <td data-label="#">${result.index}</td>
+            <td data-label="Original Title">${escapeHtml(result.original)}</td>
+            <td data-label="Matched Title">${result.matched ? escapeHtml(result.matched.title) : '-'}</td>
+            <td data-label="Romaji">${result.matched ? escapeHtml(result.matched.romaji) : '-'}</td>
+            <td data-label="English">${result.matched ? escapeHtml(result.matched.english) : '-'}</td>
+            <td data-label="Year">${result.matched ? result.matched.year || '-' : '-'}</td>
+            <td data-label="AniList ID">${result.matched ? result.matched.id : '-'}</td>
+            <td data-label="Status"><span class="status-icon">${statusIcon}</span> ${statusText}</td>
+            <td data-label="Actions">
                 <div class="action-buttons">
                     <button class="btn btn-small btn-info" data-action="search" title="Search again">🔍</button>
                     <button class="btn btn-small btn-secondary" data-action="clear" title="Clear match">✕</button>
@@ -229,6 +257,21 @@ function handleResponsiveUI() {
     } else {
         toolbar.style.flexDirection = 'row';
     }
+}
+
+/**
+ * Compact the top chrome when the user scrolls away
+ */
+function handleScrollUI() {
+    if (scrollFrame) {
+        return;
+    }
+
+    scrollFrame = requestAnimationFrame(() => {
+        const scrolled = window.scrollY > 40;
+        document.body.classList.toggle('scrolled', scrolled);
+        scrollFrame = null;
+    });
 }
 
 /**

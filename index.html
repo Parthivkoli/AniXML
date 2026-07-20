@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AniXML - Convert Anime Lists to AniList XML</title>
+    <title>AniXML - Fast Anime List to XML Converter</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' fill='%232b90d9'>A</text></svg>">
 </head>
@@ -14,13 +14,43 @@
             <div class="header-content">
                 <div class="header-title">
                     <h1 class="logo">✨ AniXML</h1>
-                    <p class="subtitle">Convert anime title lists into AniList-importable XML</p>
+                    <p class="subtitle">Fast browser converter for anime list imports</p>
                 </div>
-                <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
-                    <span class="theme-icon">🌙</span>
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" aria-pressed="false">
+                    <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5c0-.3 0-.6-.1-.9a6.5 6.5 0 0 1-8.4-7.6Z"></path>
+                    </svg>
                 </button>
             </div>
         </header>
+
+        <!-- Hero -->
+        <section class="hero" aria-label="Quick overview">
+            <div class="hero-copy">
+                <h2>Paste, clean, match, export.</h2>
+                <p class="hero-text">Clean list formatting, match titles, and export XML or XML.GZ in the browser.</p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="#inputTextarea">Start Pasting</a>
+                    <a class="btn btn-secondary" href="#resultsSection">View Results</a>
+                </div>
+            </div>
+            <div class="hero-panel">
+                <div class="hero-panel-header">
+                    <span class="hero-pill">Static site</span>
+                    <span class="hero-pill hero-pill-alt">GitHub Pages</span>
+                </div>
+                <div class="otaku-strip" aria-hidden="true">
+                    <span class="otaku-chip hat">Straw Hat</span>
+                    <span class="otaku-chip swords">Three Swords</span>
+                    <span class="otaku-chip spark">Otaku Fast</span>
+                </div>
+                <div class="hero-steps">
+                    <div class="hero-step"><span>1</span> Paste a list</div>
+                    <div class="hero-step"><span>2</span> Clean and match</div>
+                    <div class="hero-step"><span>3</span> Export XML</div>
+                </div>
+            </div>
+        </section>
 
         <!-- Toolbar -->
         <nav class="toolbar">
@@ -48,8 +78,8 @@
         <!-- Input Section -->
         <section class="section">
             <div class="card">
-                <h2>Paste Your Anime List</h2>
-                <p class="section-desc">One title per line. Duplicates will be removed automatically.</p>
+                <h2>Input</h2>
+                <p class="section-desc">Paste one title per line. Numbers and emoji are cleaned automatically.</p>
                 <textarea 
                     id="inputTextarea" 
                     class="input-textarea" 
@@ -71,19 +101,19 @@
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-number" id="totalStat">0</div>
-                    <div class="stat-label">Total Titles</div>
+                    <div class="stat-label">Titles</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="matchedStat">0</div>
-                    <div class="stat-label">Matched</div>
+                    <div class="stat-label">Found</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="notFoundStat">0</div>
-                    <div class="stat-label">Not Found</div>
+                    <div class="stat-label">Missed</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="duplicateStat">0</div>
-                    <div class="stat-label">Duplicates</div>
+                    <div class="stat-label">Dupes</div>
                 </div>
             </div>
         </section>
@@ -92,7 +122,7 @@
         <section class="section" id="progressSection" style="display: none;">
             <div class="card">
                 <div class="progress-header">
-                    <h3>Search Progress</h3>
+                    <h3>Progress</h3>
                     <button class="btn btn-small btn-secondary" id="cancelSearchBtn">Cancel</button>
                 </div>
                 <div class="progress-info">
@@ -112,7 +142,7 @@
         <section class="section" id="resultsSection" style="display: none;">
             <div class="card">
                 <div class="results-header">
-                    <h2>Match Results</h2>
+                    <h2>Results</h2>
                     <div class="results-controls">
                         <input 
                             type="text" 
@@ -124,7 +154,6 @@
                         <select id="statusFilter" class="status-filter" aria-label="Filter by status">
                             <option value="all">All Statuses</option>
                             <option value="matched">✅ Matched</option>
-                            <option value="ambiguous">⚠️ Ambiguous</option>
                             <option value="notfound">❌ Not Found</option>
                         </select>
                     </div>
@@ -154,11 +183,11 @@
         <!-- Footer -->
         <footer class="footer">
             <div class="footer-content">
-                <p>&copy; 2024 AniXML. Built with ✨ for anime fans.</p>
+                <p>&copy; 2026 AniXML. Browser-based anime list conversion.</p>
                 <div class="footer-links">
                     <a href="https://github.com/Parthivkoli/AniXML" target="_blank" rel="noopener">GitHub</a>
                     <a href="https://anilist.co" target="_blank" rel="noopener">AniList API</a>
-                    <a href="#">License</a>
+                    <a href="LICENSE" target="_blank" rel="noopener">MIT License</a>
                 </div>
             </div>
         </footer>
@@ -172,6 +201,13 @@
                 <button class="modal-close" id="closeSettingsBtn" aria-label="Close settings">✕</button>
             </div>
             <div class="modal-body">
+                <div class="settings-group">
+                    <label for="mediaTypeSelect">Media Type:</label>
+                    <select id="mediaTypeSelect">
+                        <option value="ANIME">Anime</option>
+                        <option value="MANGA">Manga</option>
+                    </select>
+                </div>
                 <div class="settings-group">
                     <label for="concurrencyInput">Concurrent Requests:</label>
                     <input type="number" id="concurrencyInput" min="1" max="10" value="4">

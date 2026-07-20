@@ -10,22 +10,22 @@ import { escapeXml } from './utils.js';
 /**
  * Generate valid MyAnimeList XML
  * @param {Array} results - Search results array
- * @param {string} defaultStatus - Default status for unmatched entries
+ * @param {Object} options - Export options
  * @returns {string} Valid XML string
  */
-export function generateXML(results, defaultStatus = 'Plan to Watch') {
+export function generateXML(results, options = {}) {
+    const mediaType = options.mediaType === 'MANGA' ? 'MANGA' : 'ANIME';
+    const defaultStatus = options.defaultStatus || getDefaultStatus(mediaType);
+
     if (!results || results.length === 0) {
         return '<?xml version="1.0" encoding="UTF-8"?>\n<myanimelist>\n  <myinfo>\n    <user_name></user_name>\n    <user_export_type>1</user_export_type>\n  </myinfo>\n</myanimelist>';
     }
 
-    // Map status values to MyAnimeList status codes
-    const statusMap = {
-        'Plan to Watch': 6,
-        'Watching': 1,
-        'Completed': 2,
-        'On Hold': 3,
-        'Dropped': 4
-    };
+    const entryTag = mediaType === 'MANGA' ? 'manga' : 'anime';
+    const idTag = mediaType === 'MANGA' ? 'manga_mangadb_id' : 'series_animedb_id';
+    const titleTag = mediaType === 'MANGA' ? 'manga_title' : 'series_title';
+    const primaryCountTag = mediaType === 'MANGA' ? 'my_read_chapters' : 'my_watched_episodes';
+    const secondaryCountTag = mediaType === 'MANGA' ? 'my_read_volumes' : 'series_episodes';
 
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
     xml += '<myanimelist>\n';
@@ -39,17 +39,17 @@ export function generateXML(results, defaultStatus = 'Plan to Watch') {
     
     matchedResults.forEach((result) => {
         try {
-            const statusCode = statusMap[defaultStatus] || 6;
             const title = result.matched.title || result.original;
-            const animedDbId = result.matched.id || 0;
+            const mediaDbId = result.matched.id || 0;
 
-            xml += '  <anime>\n';
-            xml += `    <series_animedb_id>${animedDbId}</series_animedb_id>\n`;
-            xml += `    <series_title>${escapeXml(title)}</series_title>\n`;
+            xml += `  <${entryTag}>\n`;
+            xml += `    <${idTag}>${mediaDbId}</${idTag}>\n`;
+            xml += `    <${titleTag}>${escapeXml(title)}</${titleTag}>\n`;
             xml += `    <my_status>${escapeXml(defaultStatus)}</my_status>\n`;
             xml += '    <my_score>0</my_score>\n';
-            xml += '    <my_watched_episodes>0</my_watched_episodes>\n';
-            xml += '  </anime>\n';
+            xml += `    <${secondaryCountTag}>0</${secondaryCountTag}>\n`;
+            xml += `    <${primaryCountTag}>0</${primaryCountTag}>\n`;
+            xml += `  </${entryTag}>\n`;
         } catch (err) {
             console.error('Error processing result:', result, err);
         }
@@ -57,6 +57,10 @@ export function generateXML(results, defaultStatus = 'Plan to Watch') {
 
     xml += '</myanimelist>';
     return xml;
+}
+
+function getDefaultStatus(mediaType) {
+    return mediaType === 'MANGA' ? 'Plan to Read' : 'Plan to Watch';
 }
 
 /**
@@ -131,3 +135,4 @@ export function validateXML(xml) {
     } catch (err) {
         return false;
     }
+}
