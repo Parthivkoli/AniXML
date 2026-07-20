@@ -1,1 +1,582 @@
-# ✨ AniXML\n\n**Convert anime title lists into AniList-importable XML**\n\n[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)\n[![GitHub](https://img.shields.io/badge/GitHub-AniXML-blue)](https://github.com/Parthivkoli/AniXML)\n\nAniXML is a browser-based application that converts plain text anime title lists into valid MyAnimeList XML format, ready to import into [AniList](https://anilist.co). Built entirely with vanilla JavaScript, HTML5, and CSS3 — no backend, no build tools, no dependencies.\n\n---\n\n## 🎯 Features\n\n✅ **Paste, Import, or Drag & Drop** — Multiple input methods for convenience\n\n✅ **Automatic Duplicate Removal** — Intelligent deduplication with statistics\n\n✅ **AniList GraphQL Search** — Real-time anime matching with the official API\n\n✅ **Smart Matching** — Auto-retry with normalized titles and season suffix removal\n\n✅ **Concurrency Control** — Configurable concurrent API requests (1-10)\n\n✅ **Progress Tracking** — Live progress bar with elapsed time and completion stats\n\n✅ **Manual Override** — Search and manually match individual titles\n\n✅ **Multiple Export Formats** — XML, XML.GZ, JSON, CSV, and unmatched lists\n\n✅ **Dark Mode** — Built-in theme toggle with persistent preference\n\n✅ **Local Storage** — Auto-save progress and restore on refresh\n\n✅ **Responsive Design** — Works on desktop, tablet, and mobile\n\n✅ **Accessibility** — Keyboard navigation, ARIA labels, high contrast support\n\n✅ **Keyboard Shortcuts** — Ctrl+Enter (search), Ctrl+S (export), Ctrl+O (import)\n\n---\n\n## 🚀 Quick Start\n\n### Deploy to GitHub Pages\n\n1. **Fork or clone the repository**\n   ```bash\n   git clone https://github.com/Parthivkoli/AniXML.git\n   cd AniXML\n   ```\n\n2. **Enable GitHub Pages**\n   - Go to repository **Settings** → **Pages**\n   - Select **main** branch\n   - Save\n\n3. **Access the app**\n   - Visit: `https://your-username.github.io/AniXML`\n   - The app is now live!\n\n### Use the Hosted Version\n\nVisit the official deployment:\n```\nhttps://Parthivkoli.github.io/AniXML\n```\n\n---\n\n## 📖 Usage\n\n### 1. Input Your Anime List\n\nYou can input titles in three ways:\n\n**Method A: Paste**\n- Click the **Paste** button\n- One title per line\n\n**Method B: Import File**\n- Click **Import TXT**\n- Select a `.txt` file from your computer\n\n**Method C: Drag & Drop**\n- Drag a `.txt` file onto the textarea\n- Drop to load immediately\n\n**Example input:**\n```\nFrieren\nSteins;Gate\nDeath Note\nBocchi the Rock!\nVinland Saga\n```\n\n### 2. Review Statistics\n\nThe statistics cards show:\n- **Total Titles** — Number of unique titles\n- **Matched** — Titles found in AniList\n- **Not Found** — Titles without a match\n- **Duplicates** — Number of duplicates removed\n\n### 3. Search AniList\n\n1. Click the **Search** button\n2. Watch the progress bar as titles are matched\n3. The application searches in batches (default: 4 concurrent requests)\n\n**Search Features:**\n- Automatic retry on network errors\n- Normalized title matching (removes punctuation, season suffixes)\n- Real-time progress updates\n- Cancel button to stop search\n\n### 4. Review Results\n\nThe results table shows:\n- **#** — Row number\n- **Original Title** — What you entered\n- **Matched Title** — Found on AniList\n- **Romaji** — Japanese romanization\n- **English** — English title if available\n- **Year** — Premiere year\n- **AniList ID** — Unique identifier\n- **Status** — ✅ Matched, ❌ Not Found\n- **Actions** — Search again or clear match\n\n### 5. Manual Search\n\nFor ambiguous or unmatched titles:\n\n1. Click the **🔍** icon in the Actions column\n2. Type in the modal search box\n3. Results appear instantly\n4. Click a result to select it\n5. The table updates automatically\n\n### 6. Export\n\nClick the **Export** button and choose:\n\n- **Download XML** — MyAnimeList XML format\n- **Download XML.GZ** — Compressed XML (gzip)\n- **Download JSON** — Structured JSON data\n- **Download CSV** — Spreadsheet format\n- **Download Unmatched** — List of titles without matches\n- **Copy XML** — Copy to clipboard\n\n---\n\n## ⚙️ Settings\n\nAccess via the **⚙️ Settings** button:\n\n### Concurrent Requests\n- Range: 1-10 (default: 4)\n- Higher values = faster searching, higher API load\n- Lower values = slower searching, less API strain\n\n### Auto Retry\n- When enabled: Retry failed searches after 2 seconds\n- Helps recover from temporary network issues\n\n### Auto Save\n- When enabled: Automatically save progress to local storage\n- Restore automatically on page refresh\n\n### Default Export Status\n- **Plan to Watch** — Default for new entries\n- **Watching** — Currently watching\n- **Completed** — Finished watching\n- **On Hold** — Paused\n- **Dropped** — Stopped watching\n\n### Reset Session\n- Clears all data, input, and results\n- **Cannot be undone**\n\n---\n\n## 🔄 How Matching Works\n\n### Exact Match\n```\nInput: \"Frieren\"\n→ Searches AniList GraphQL API\n→ Found: \"Frieren: Beyond Journey's End\"\n✅ Match!\n```\n\n### Normalized Match\n```\nInput: \"Steins;Gate 0\"\n→ Exact search fails\n→ Normalizes to: \"Steins Gate 0\"\n→ Retry with normalized title\n✅ Match!\n```\n\n### No Match\n```\nInput: \"Anime That Doesn't Exist\"\n→ Exact search fails\n→ Normalized search fails\n❌ No match found\n```\n\n### Smart Features\n- Removes punctuation: `:`, `-`, `!`, `?`, `'`, `\"`, `.`, `,`\n- Removes season suffixes: \"Season 2\", \"2nd Season\", \"OVA\", \"Movie\"\n- Case-insensitive matching\n- Retries with cleaned title automatically\n\n---\n\n## 📄 XML Format\n\nGenerated XML follows MyAnimeList export standard:\n\n```xml\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<myanimelist>\n  <myinfo>\n    <user_name></user_name>\n    <user_export_type>1</user_export_type>\n  </myinfo>\n  <anime>\n    <series_animedb_id>42</series_animedb_id>\n    <series_title>Frieren</series_title>\n    <my_status>Plan to Watch</my_status>\n    <my_score>0</my_score>\n    <my_watched_episodes>0</my_watched_episodes>\n  </anime>\n</myanimelist>\n```\n\n### Importing to AniList\n\n1. Export the XML from AniXML\n2. Go to [AniList Settings](https://anilist.co/settings/import-export)\n3. Click \"Import MyAnimeList\"\n4. Upload the XML file\n5. Confirm import\n\n---\n\n## 🌙 Dark Mode\n\nClick the moon icon (🌙) in the header to toggle dark mode.\n\n**Features:**\n- Persistent preference (saved to local storage)\n- All colors optimized for dark backgrounds\n- Smooth transition animation\n- High contrast for accessibility\n\n---\n\n## 💾 Local Storage\n\nAuto-saved data includes:\n- Input textarea content\n- Search results\n- Settings preferences\n- Dark mode state\n\n**Storage Details:**\n- Uses browser LocalStorage API\n- Automatically saves on input changes (if auto-save enabled)\n- Survives browser restarts and page refreshes\n- Cleared only on explicit reset\n\n---\n\n## ⌨️ Keyboard Shortcuts\n\n| Shortcut | Action |\n|----------|--------|\n| `Ctrl+Enter` | Start search |\n| `Ctrl+S` | Open export modal |\n| `Ctrl+O` | Open file import dialog |\n| `Escape` | Close modals |\n| `Tab` | Navigate form elements |\n\n---\n\n## 🔧 Architecture\n\n### File Structure\n\n```\nAniXML/\n├── index.html       # Main HTML structure\n├── style.css        # Complete styling\n├── main.js          # Application orchestration\n├── api.js           # AniList GraphQL API\n├── xml.js           # XML/JSON/CSV generation\n├── storage.js       # LocalStorage management\n├── ui.js            # UI updates and interactions\n├── utils.js         # Utility functions\n├── LICENSE          # MIT License\n├── README.md        # This file\n└── .gitignore       # Git ignore rules\n```\n\n### Technology Stack\n\n- **HTML5** — Semantic markup\n- **CSS3** — Grid, Flexbox, Variables, Animations\n- **JavaScript (ES Modules)** — Vanilla, no frameworks\n- **External Libraries:**\n  - [pako](https://github.com/nodeca/pako) — gzip compression\n  - [DOMPurify](https://github.com/cure53/DOMPurify) — XSS prevention (optional)\n  - [Fuse.js](https://fusejs.io/) — Local search (optional)\n\n### No Backend Required\n\n- Entire application runs in the browser\n- API communication directly to AniList GraphQL\n- No authentication needed (public API)\n- No server-side processing\n- No database\n- Fully static hosting compatible\n\n---\n\n## 📊 Performance\n\n**Tested with:**\n- ✅ 10 entries — Instant\n- ✅ 100 entries — ~15 seconds\n- ✅ 500 entries — ~60 seconds\n- ✅ 1000 entries — ~120 seconds\n\n**Optimization Techniques:**\n- Configurable concurrency limits\n- Async/await with yield points\n- Efficient DOM updates\n- Minimal re-renders\n- LocalStorage caching\n\n---\n\n## ♿ Accessibility\n\n**Features:**\n- Semantic HTML5 structure\n- ARIA labels on all interactive elements\n- Keyboard navigation support\n- Focus indicators on all buttons\n- High contrast color scheme\n- Readable font sizes\n- Tab order optimization\n\n**Tested with:**\n- Keyboard-only navigation\n- Screen readers (NVDA, JAWS)\n- Browser zoom (up to 200%)\n- Dark mode\n- High contrast mode\n\n---\n\n## 🐛 Error Handling\n\n### Network Errors\n- Automatic retry with exponential backoff\n- Friendly error messages\n- Graceful degradation\n\n### API Rate Limiting\n- Handles HTTP 429 responses\n- Waits and retries automatically\n- Configurable concurrency to prevent limits\n\n### Invalid Data\n- Malformed XML detection\n- Character escaping\n- Empty input validation\n\n### File Errors\n- File type validation\n- Encoding detection\n- Readable error messages\n\n---\n\n## ❓ FAQ\n\n### Q: Why isn't my anime found?\n**A:** Try:\n1. Check the exact spelling (case-insensitive)\n2. Try the Japanese name\n3. Use manual search to browse similar titles\n4. The anime might not be in AniList yet\n\n### Q: Can I edit the XML after download?\n**A:** Yes, it's a standard text file. Edit in any text editor, but be careful with XML syntax.\n\n### Q: How long does searching take?\n**A:** Depends on the number of titles and internet speed. ~1 title per second with default settings.\n\n### Q: Can I stop a search?\n**A:** Yes, click the **Cancel** button in the progress section.\n\n### Q: Where is my data stored?\n**A:** All data is stored locally in your browser's LocalStorage. Nothing is sent to external servers except AniList API requests.\n\n### Q: Does this work offline?\n**A:** Partially. Input and viewing results work offline. Searching requires internet (AniList API).\n\n### Q: What about my anime list privacy?\n**A:** Your data is never stored on any server. All processing happens in your browser.\n\n### Q: Can I use this on mobile?\n**A:** Yes, the app is fully responsive and works on phones and tablets.\n\n### Q: What formats does it export?\n**A:** XML, XML.GZ (compressed), JSON, CSV, and text (unmatched only).\n\n---\n\n## 🤝 Contributing\n\nContributions are welcome! Here's how:\n\n1. **Fork** the repository\n2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)\n3. **Make** your changes\n4. **Test** thoroughly (no TypeScript, strict vanilla JS)\n5. **Commit** with clear messages\n6. **Push** to your branch\n7. **Open** a Pull Request\n\n### Development Guidelines\n- Use vanilla JavaScript only (no frameworks)\n- Keep modules focused and small\n- Add JSDoc comments for functions\n- Test in modern browsers\n- Maintain accessibility standards\n- Follow existing code style\n\n---\n\n## 📝 License\n\nMIT License © 2024 AniXML Contributors\n\nSee [LICENSE](LICENSE) for details.\n\n---\n\n## 🔗 Links\n\n- **Repository:** https://github.com/Parthivkoli/AniXML\n- **Live Demo:** https://Parthivkoli.github.io/AniXML\n- **AniList:** https://anilist.co\n- **AniList API Docs:** https://anilist.gitbook.io/anilist-apiv2-docs\n\n---\n\n## 💬 Support\n\nHave questions or issues?\n\n- **Open an Issue** on GitHub\n- **Check FAQ** section above\n- **Read the code comments** for technical details\n\n---\n\n**Made with ✨ for anime fans**\n\n*Tip: Star this repo if you find it useful! ⭐*\n
+<h1 align="center">🎌 AniXML</h1>
+
+<p align="center">
+Convert plain text anime lists into <b>MyAnimeList XML</b> ready for importing into <b>AniList</b>.
+</p>
+
+<p align="center">
+
+![License](https://img.shields.io/github/license/Parthivkoli/AniXML?style=for-the-badge)
+![Stars](https://img.shields.io/github/stars/Parthivkoli/AniXML?style=for-the-badge)
+![Forks](https://img.shields.io/github/forks/Parthivkoli/AniXML?style=for-the-badge)
+![Issues](https://img.shields.io/github/issues/Parthivkoli/AniXML?style=for-the-badge)
+![JavaScript](https://img.shields.io/badge/Vanilla-JavaScript-F7DF1E?style=for-the-badge&logo=javascript)
+![GitHub Pages](https://img.shields.io/badge/GitHub-Pages-222?style=for-the-badge&logo=github)
+
+</p>
+
+<p align="center">
+
+🌸 Browser Only • ⚡ Fast • 🎌 AniList API • 📄 MAL XML Export • 🌙 Dark Mode
+
+</p>
+
+---
+
+# ✨ Overview
+
+AniXML is a lightweight browser application that converts plain text anime title lists into **MyAnimeList XML**, allowing effortless bulk imports into **AniList**.
+
+No account required.
+
+No backend.
+
+No installation.
+
+No build tools.
+
+Everything runs entirely in your browser.
+
+---
+
+# 🎯 Why AniXML?
+
+Many anime recommendations come as simple text lists from:
+
+- Reddit
+- Discord
+- YouTube
+- Blogs
+- Friends
+- AI chatbots
+
+AniXML automatically:
+
+- finds every anime on AniList
+- resolves titles
+- removes duplicates
+- generates valid MAL XML
+- lets you import everything in minutes instead of hours.
+
+---
+
+# 🗺 Workflow
+
+```text
+Anime Titles
+(one per line)
+
+        │
+        ▼
+
+     AniXML
+
+        │
+        ▼
+
+ AniList GraphQL API
+
+        │
+        ▼
+
+ Automatic Matching
+
+        │
+        ▼
+
+ Manual Fixes (optional)
+
+        │
+        ▼
+
+MyAnimeList XML Export
+
+        │
+        ▼
+
+ Import into AniList
+```
+
+---
+
+# 🌸 Features
+
+## 🎌 Smart Anime Matching
+
+Automatically searches the AniList GraphQL API and finds the correct anime.
+
+---
+
+## ⚡ Fast Bulk Processing
+
+Search hundreds or even thousands of titles with configurable concurrent requests.
+
+---
+
+## 🧠 Intelligent Title Cleanup
+
+Automatically retries searches by removing:
+
+- punctuation
+- season suffixes
+- OVA
+- Movie
+- Part 2
+- Final Season
+
+---
+
+## ✍ Manual Search
+
+Incorrect match?
+
+Search again and select another anime instantly.
+
+---
+
+## 📦 Multiple Export Formats
+
+- XML
+- XML.GZ
+- JSON
+- CSV
+- TXT (unmatched)
+
+---
+
+## 📂 Import Options
+
+- Paste
+- TXT File
+- Drag & Drop
+
+---
+
+## ♿ Accessibility
+
+- Keyboard navigation
+- ARIA labels
+- High contrast
+- Responsive layout
+
+---
+
+# 🎴 Supported Platforms
+
+| Platform | Status |
+|----------|--------|
+| <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/anilist.svg" width="18"> AniList | ✅ Import |
+| <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/myanimelist.svg" width="18"> MyAnimeList | ✅ XML Export Format |
+
+---
+
+# 🚀 Quick Start
+
+## GitHub Pages
+
+```bash
+git clone https://github.com/Parthivkoli/AniXML.git
+
+cd AniXML
+```
+
+Go to
+
+Settings → Pages
+
+Select
+
+```
+main
+```
+
+Save.
+
+Open
+
+```
+https://YOUR_USERNAME.github.io/AniXML
+```
+
+---
+
+# 🍜 Usage
+
+## Step 1
+
+Paste
+
+```text
+Frieren
+Steins;Gate
+Death Note
+Vinland Saga
+Bocchi the Rock!
+```
+
+or
+
+Import a TXT file.
+
+---
+
+## Step 2
+
+Click
+
+```
+Search AniList
+```
+
+AniXML automatically
+
+- removes duplicates
+- searches AniList
+- retries failed matches
+- shows progress
+
+---
+
+## Step 3
+
+Review matches.
+
+Use manual search if necessary.
+
+---
+
+## Step 4
+
+Export
+
+- XML
+- XML.GZ
+- JSON
+- CSV
+
+---
+
+## Step 5
+
+Import XML into AniList.
+
+---
+
+# ✨ Example
+
+## Input
+
+```text
+Frieren
+Death Note
+Steins;Gate
+```
+
+↓
+
+## Output
+
+```xml
+<anime>
+    <series_title>Frieren: Beyond Journey's End</series_title>
+</anime>
+
+<anime>
+    <series_title>Death Note</series_title>
+</anime>
+
+<anime>
+    <series_title>Steins;Gate</series_title>
+</anime>
+```
+
+---
+
+# ⚙ Settings
+
+Configure:
+
+- Concurrent Requests
+- Retry Failed Searches
+- Auto Save
+- Theme
+- Default Status
+- Export Preferences
+
+---
+
+# 🔎 Matching Logic
+
+AniXML attempts searches in this order.
+
+1. Exact title
+
+↓
+
+2. Remove punctuation
+
+↓
+
+3. Remove season suffixes
+
+↓
+
+4. Retry
+
+↓
+
+5. Manual search
+
+---
+
+# 📄 XML Format
+
+Generated XML follows the standard MyAnimeList export format.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<myanimelist>
+
+    <myinfo>
+
+        <user_name></user_name>
+
+        <user_export_type>1</user_export_type>
+
+    </myinfo>
+
+    <anime>
+
+        <series_animedb_id>52991</series_animedb_id>
+
+        <series_title>Frieren</series_title>
+
+        <my_status>Plan to Watch</my_status>
+
+        <my_score>0</my_score>
+
+        <my_watched_episodes>0</my_watched_episodes>
+
+    </anime>
+
+</myanimelist>
+```
+
+---
+
+# 📥 Import into AniList
+
+1. Open AniList
+
+2. Settings
+
+3. Import
+
+4. MyAnimeList XML
+
+5. Upload
+
+6. Done 🎉
+
+---
+
+# 💾 Local Storage
+
+AniXML automatically stores
+
+- pasted titles
+- search results
+- settings
+- dark mode
+- export preferences
+
+No information is uploaded anywhere except AniList searches.
+
+---
+
+# ⌨ Keyboard Shortcuts
+
+| Shortcut | Action |
+|-----------|--------|
+| Ctrl + Enter | Search |
+| Ctrl + O | Import TXT |
+| Ctrl + S | Export XML |
+| Esc | Close Dialog |
+| Ctrl + R | Reset Session |
+
+---
+
+# 🧩 Project Structure
+
+```text
+AniXML
+
+├── index.html
+├── style.css
+├── main.js
+├── api.js
+├── search.js
+├── ui.js
+├── storage.js
+├── xml.js
+├── utils.js
+├── assets/
+│
+├── docs/
+│   ├── home.png
+│   ├── matching.png
+│   ├── export.png
+│   ├── dark.png
+│   └── demo.gif
+│
+├── LICENSE
+└── README.md
+```
+
+---
+
+# ⚡ Performance
+
+| Titles | Time |
+|---------|------|
+| 10 | Instant |
+| 100 | ~15 sec |
+| 500 | ~60 sec |
+| 1000 | ~2 min |
+
+---
+
+# 🛠 Tech Stack
+
+- HTML5
+- CSS3
+- Vanilla JavaScript (ES Modules)
+- AniList GraphQL API
+- pako
+- LocalStorage
+
+No frameworks.
+
+No backend.
+
+No build tools.
+
+---
+
+# 🗺 Roadmap
+
+## v1.0
+
+- [x] TXT Import
+- [x] Drag & Drop
+- [x] AniList Search
+- [x] Manual Matching
+- [x] XML Export
+- [x] JSON Export
+- [x] CSV Export
+- [x] Dark Mode
+- [x] Local Storage
+
+## v1.1
+
+- [ ] Anime Posters
+- [ ] Batch Editing
+- [ ] Progress Resume
+- [ ] Offline Cache
+- [ ] Better Duplicate Detection
+
+## v2.0
+
+- [ ] PWA Support
+- [ ] MAL Username Import
+- [ ] Kitsu Support
+- [ ] AnimePlanet Support
+- [ ] Custom Export Profiles
+
+---
+
+# ❓ FAQ
+
+### Why wasn't my anime found?
+
+Try:
+
+- manual search
+- English title
+- Romaji title
+- Japanese title
+
+---
+
+### Does AniXML upload my list anywhere?
+
+No.
+
+Everything happens locally in your browser.
+
+Only search requests are sent to the public AniList API.
+
+---
+
+### Does it work offline?
+
+Searching requires internet.
+
+Everything else works locally.
+
+---
+
+### Can I edit XML?
+
+Yes.
+
+It is standard XML.
+
+---
+
+### Can I import thousands of anime?
+
+Yes.
+
+The UI is designed for large lists.
+
+---
+
+# 🤝 Contributing
+
+Pull Requests are welcome.
+
+Please
+
+- keep dependencies minimal
+- use vanilla JavaScript
+- maintain accessibility
+- write clear commit messages
+
+---
+
+# 📜 License
+
+MIT License
+
+See LICENSE for details.
+
+---
+
+# 🙏 Credits
+
+- <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/anilist.svg" width="18"> AniList GraphQL API
+- <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/myanimelist.svg" width="18"> MyAnimeList XML Specification
+- pako
+- Fuse.js
+
+---
+
+<p align="center">
+
+### 🌸 Made for anime fans.
+
+⭐ If AniXML saved you time, consider starring the repository.
+
+</p>
