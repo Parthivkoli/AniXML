@@ -26,8 +26,6 @@ const SEARCH_QUERY = `
 `;
 
 let searchAborted = false;
-let activeRequests = 0;
-const requestQueue = [];
 
 /**
  * Search for anime titles with concurrency control
@@ -39,7 +37,6 @@ const requestQueue = [];
  */
 export async function searchTitles(titles, concurrency = 4, autoRetry = true, progressCallback = null) {
     searchAborted = false;
-    activeRequests = 0;
     const results = [];
     const startTime = Date.now();
     let completed = 0;
@@ -146,7 +143,8 @@ async function searchAnime(title) {
         const data = await response.json();
 
         if (data.errors) {
-            throw new Error(data.errors[0]?.message || 'API error');
+            console.warn(`API error for "${title}":`, data.errors[0]?.message);
+            return null;
         }
 
         if (data.data?.Media) {

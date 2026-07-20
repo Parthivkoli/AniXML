@@ -9,7 +9,7 @@ import { initializeStorage, saveState, loadState, clearState } from './storage.j
 import { initializeUI, updateStats, showToast, showProgressSection, hideProgressSection, updateProgress, showResultsTable, updateResultsTable, openModal, closeModal } from './ui.js';
 import { searchTitles, cancelSearch } from './api.js';
 import { generateXML, generateJSON, generateCSV } from './xml.js';
-import { normalizeTitle, downloadFile, extractUnique, escapeXml } from './utils.js';
+import { normalizeTitle, downloadFile, extractUnique, escapeXml, escapeHtml } from './utils.js';
 
 let appState = {
     inputTitles: [],
@@ -31,32 +31,45 @@ let settings = {
  * Initialize the application
  */
 async function initializeApp() {
-    // Initialize storage
-    await initializeStorage();
+    try {
+        // Initialize storage
+        await initializeStorage();
 
-    // Load saved state
-    const savedState = loadState();
-    if (savedState) {
-        appState = { ...appState, ...savedState };
-        settings = { ...settings, savedState.settings };
-        updateUIFromState();
-    }
+        // Load saved state
+        const savedState = loadState();
+        if (savedState) {
+            appState = { ...appState, ...savedState };
+            if (savedState.settings) {
+                settings = { ...settings, ...savedState.settings };
+            }
+            updateUIFromState();
+        }
 
-    // Initialize UI
-    initializeUI();
+        // Initialize UI
+        initializeUI();
 
-    // Load dark mode preference
-    if (settings.darkMode) {
-        document.body.classList.add('dark-mode');
-    }
+        // Load dark mode preference
+        if (settings.darkMode) {
+            document.body.classList.add('dark-mode');
+            document.getElementById('themeToggle').textContent = '☀️';
+        } else {
+            document.body.classList.remove('dark-mode');
+            document.getElementById('themeToggle').textContent = '🌙';
+        }
 
-    // Attach event listeners
-    attachEventListeners();
+        // Attach event listeners
+        attachEventListeners();
 
-    // Load initial content if available
-    if (appState.inputTitles.length > 0) {
-        document.getElementById('inputTextarea').value = appState.inputTitles.join('\n');
-        updateInputStats();
+        // Load initial content if available
+        if (appState.inputTitles.length > 0) {
+            document.getElementById('inputTextarea').value = appState.inputTitles.join('\n');
+            updateInputStats();
+        }
+
+        console.log('AniXML initialized successfully');
+    } catch (error) {
+        console.error('Initialization error:', error);
+        showToast('Failed to initialize application', 'error');
     }
 }
 
@@ -64,72 +77,78 @@ async function initializeApp() {
  * Attach all event listeners
  */
 function attachEventListeners() {
-    // Input events
-    const inputTextarea = document.getElementById('inputTextarea');
-    inputTextarea.addEventListener('input', handleInputChange);
-    inputTextarea.addEventListener('dragover', handleDragOver);
-    inputTextarea.addEventListener('drop', handleDrop);
+    try {
+        // Input events
+        const inputTextarea = document.getElementById('inputTextarea');
+        inputTextarea.addEventListener('input', handleInputChange);
+        inputTextarea.addEventListener('dragover', handleDragOver);
+        inputTextarea.addEventListener('drop', handleDrop);
 
-    // Button events
-    document.getElementById('importTxtBtn').addEventListener('click', handleImportTxt);
-    document.getElementById('pasteBtn').addEventListener('click', handlePaste);
-    document.getElementById('settingsBtn').addEventListener('click', () => openModal('settingsModal'));
-    document.getElementById('clearInputBtn').addEventListener('click', handleClearInput);
-    document.getElementById('searchBtn').addEventListener('click', handleSearch);
-    document.getElementById('cancelSearchBtn').addEventListener('click', handleCancelSearch);
-    document.getElementById('exportBtn').addEventListener('click', () => openModal('exportModal'));
+        // Button events
+        document.getElementById('importTxtBtn').addEventListener('click', handleImportTxt);
+        document.getElementById('pasteBtn').addEventListener('click', handlePaste);
+        document.getElementById('settingsBtn').addEventListener('click', () => openModal('settingsModal'));
+        document.getElementById('clearInputBtn').addEventListener('click', handleClearInput);
+        document.getElementById('searchBtn').addEventListener('click', handleSearch);
+        document.getElementById('cancelSearchBtn').addEventListener('click', handleCancelSearch);
+        document.getElementById('exportBtn').addEventListener('click', () => openModal('exportModal'));
 
-    // Theme toggle
-    document.getElementById('themeToggle').addEventListener('click', handleThemeToggle);
+        // Theme toggle
+        document.getElementById('themeToggle').addEventListener('click', handleThemeToggle);
 
-    // Settings modal
-    document.getElementById('closeSettingsBtn').addEventListener('click', () => closeModal('settingsModal'));
-    document.getElementById('resetSessionBtn').addEventListener('click', handleResetSession);
-    document.getElementById('concurrencyInput').addEventListener('change', (e) => {
-        settings.concurrency = parseInt(e.target.value);
-        saveState({ settings });
-    });
-    document.getElementById('autoRetryToggle').addEventListener('change', (e) => {
-        settings.autoRetry = e.target.checked;
-        saveState({ settings });
-    });
-    document.getElementById('autoSaveToggle').addEventListener('change', (e) => {
-        settings.autoSave = e.target.checked;
-        saveState({ settings });
-    });
-    document.getElementById('defaultStatusSelect').addEventListener('change', (e) => {
-        settings.defaultStatus = e.target.value;
-        saveState({ settings });
-    });
-
-    // Manual search modal
-    document.getElementById('closeManualSearchBtn').addEventListener('click', () => closeModal('manualSearchModal'));
-    document.getElementById('manualSearchInput').addEventListener('input', handleManualSearch);
-
-    // Export modal
-    document.getElementById('closeExportBtn').addEventListener('click', () => closeModal('exportModal'));
-    document.getElementById('downloadXmlBtn').addEventListener('click', handleDownloadXml);
-    document.getElementById('downloadXmlGzBtn').addEventListener('click', handleDownloadXmlGz);
-    document.getElementById('downloadJsonBtn').addEventListener('click', handleDownloadJson);
-    document.getElementById('downloadCsvBtn').addEventListener('click', handleDownloadCsv);
-    document.getElementById('downloadUnmatchedBtn').addEventListener('click', handleDownloadUnmatched);
-    document.getElementById('copyXmlBtn').addEventListener('click', handleCopyXml);
-
-    // Results filtering
-    document.getElementById('searchFilter').addEventListener('input', handleResultsFilter);
-    document.getElementById('statusFilter').addEventListener('change', handleResultsFilter);
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', handleKeyboardShortcuts);
-
-    // Modal overlay click
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('active');
-            }
+        // Settings modal
+        document.getElementById('closeSettingsBtn').addEventListener('click', () => closeModal('settingsModal'));
+        document.getElementById('resetSessionBtn').addEventListener('click', handleResetSession);
+        document.getElementById('concurrencyInput').addEventListener('change', (e) => {
+            settings.concurrency = parseInt(e.target.value);
+            saveState({ ...appState, settings });
         });
-    });
+        document.getElementById('autoRetryToggle').addEventListener('change', (e) => {
+            settings.autoRetry = e.target.checked;
+            saveState({ ...appState, settings });
+        });
+        document.getElementById('autoSaveToggle').addEventListener('change', (e) => {
+            settings.autoSave = e.target.checked;
+            saveState({ ...appState, settings });
+        });
+        document.getElementById('defaultStatusSelect').addEventListener('change', (e) => {
+            settings.defaultStatus = e.target.value;
+            saveState({ ...appState, settings });
+        });
+
+        // Manual search modal
+        document.getElementById('closeManualSearchBtn').addEventListener('click', () => closeModal('manualSearchModal'));
+        document.getElementById('manualSearchInput').addEventListener('input', handleManualSearch);
+
+        // Export modal
+        document.getElementById('closeExportBtn').addEventListener('click', () => closeModal('exportModal'));
+        document.getElementById('downloadXmlBtn').addEventListener('click', handleDownloadXml);
+        document.getElementById('downloadXmlGzBtn').addEventListener('click', handleDownloadXmlGz);
+        document.getElementById('downloadJsonBtn').addEventListener('click', handleDownloadJson);
+        document.getElementById('downloadCsvBtn').addEventListener('click', handleDownloadCsv);
+        document.getElementById('downloadUnmatchedBtn').addEventListener('click', handleDownloadUnmatched);
+        document.getElementById('copyXmlBtn').addEventListener('click', handleCopyXml);
+
+        // Results filtering
+        document.getElementById('searchFilter').addEventListener('input', handleResultsFilter);
+        document.getElementById('statusFilter').addEventListener('change', handleResultsFilter);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', handleKeyboardShortcuts);
+
+        // Modal overlay click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        console.log('Event listeners attached');
+    } catch (error) {
+        console.error('Error attaching event listeners:', error);
+    }
 }
 
 /**
@@ -308,6 +327,7 @@ async function handleSearch() {
         if (!appState.searchCancelled) {
             hideProgressSection();
             showToast(`Search failed: ${error.message}`, 'error');
+            console.error('Search error:', error);
         }
     } finally {
         document.getElementById('searchBtn').disabled = false;
@@ -332,7 +352,7 @@ function handleThemeToggle() {
     document.body.classList.toggle('dark-mode');
     settings.darkMode = document.body.classList.contains('dark-mode');
     document.getElementById('themeToggle').textContent = settings.darkMode ? '☀️' : '🌙';
-    saveState({ settings });
+    saveState({ ...appState, settings });
 }
 
 /**
@@ -351,6 +371,7 @@ function handleResetSession() {
         document.getElementById('resultsSection').style.display = 'none';
         updateInputStats();
         clearState();
+        closeModal('settingsModal');
         showToast('Session reset', 'success');
     }
 }
@@ -366,21 +387,23 @@ async function handleManualSearch(e) {
     }
 
     try {
-        const results = await fetch('https://graphql.anilist.co', {
+        const response = await fetch('https://graphql.anilist.co', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 query: `query ($search:String){Media(search:$search,type:ANIME){id title{romaji english native} episodes format seasonYear status}}`,
                 variables: { search: query }
             })
-        }).then(r => r.json());
+        });
+        
+        const results = await response.json();
 
         if (results.data?.Media) {
+            const media = results.data.Media;
             const html = `
-                <div class="search-result-item" data-id="${results.data.Media.id}" data-title="${escapeXml(results.data.Media.title.romaji || '')}"
-                     data-english="${escapeXml(results.data.Media.title.english || '')}" data-year="${results.data.Media.seasonYear || 'N/A'}">
-                    <div class="search-result-title">${results.data.Media.title.romaji || results.data.Media.title.english}</div>
-                    <div class="search-result-details">${results.data.Media.title.english || ''} | ${results.data.Media.seasonYear || 'N/A'}</div>
+                <div class="search-result-item" data-id="${media.id}" data-title="${escapeHtml(media.title.romaji || '')}" data-english="${escapeHtml(media.title.english || '')}" data-year="${media.seasonYear || 'N/A'}" data-episodes="${media.episodes || ''}" data-format="${media.format || ''}" data-status="${media.status || ''}">
+                    <div class="search-result-title">${escapeHtml(media.title.romaji || media.title.english || '')}</div>
+                    <div class="search-result-details">${escapeHtml(media.title.english || '')} | ${media.seasonYear || 'N/A'}</div>
                 </div>
             `;
             document.getElementById('manualSearchResults').innerHTML = html;
@@ -388,9 +411,12 @@ async function handleManualSearch(e) {
             document.querySelectorAll('.search-result-item').forEach(item => {
                 item.addEventListener('click', () => handleManualSearchSelect(item));
             });
+        } else {
+            document.getElementById('manualSearchResults').innerHTML = '<p style="padding: 10px; color: var(--text-light);">No results found</p>';
         }
     } catch (err) {
         console.error('Manual search error:', err);
+        showToast('Search error', 'error');
     }
 }
 
@@ -402,19 +428,28 @@ function handleManualSearchSelect(item) {
     const title = item.dataset.title;
     const english = item.dataset.english;
     const year = item.dataset.year;
+    const episodes = item.dataset.episodes;
+    const format = item.dataset.format;
+    const status = item.dataset.status;
 
-    // Update the result in the table
-    const rowIndex = document.getElementById('manualSearchInput').dataset.rowIndex;
+    const manualSearchInput = document.getElementById('manualSearchInput');
+    const rowIndex = manualSearchInput.dataset.rowIndex;
+    
     if (rowIndex !== undefined && appState.results[rowIndex]) {
         appState.results[rowIndex].matched = {
             id: parseInt(id),
             title: title,
             english: english,
-            year: parseInt(year),
-            status: 'FINISHED'
+            romaji: title,
+            native: '',
+            year: parseInt(year) || null,
+            episodes: episodes ? parseInt(episodes) : null,
+            format: format,
+            status: status
         };
         updateResultsTable(appState.results);
         closeModal('manualSearchModal');
+        updateStats();
         showToast('Result updated', 'success');
 
         if (settings.autoSave) {
@@ -432,11 +467,16 @@ function handleResultsFilter() {
 
     const rows = document.querySelectorAll('#resultsTableBody tr');
     rows.forEach(row => {
+        if (row.children.length < 8) return;
+        
         const originalTitle = row.children[1].textContent.toLowerCase();
         const status = row.children[7].textContent;
 
         let matchesSearch = originalTitle.includes(searchText);
-        let matchesStatus = statusFilter === 'all' || status.includes(statusFilter === 'matched' ? '✅' : statusFilter === 'ambiguous' ? '⚠️' : '❌');
+        let matchesStatus = statusFilter === 'all' || 
+            (statusFilter === 'matched' && status.includes('✅')) ||
+            (statusFilter === 'ambiguous' && status.includes('⚠️')) ||
+            (statusFilter === 'notfound' && status.includes('❌'));
 
         row.style.display = matchesSearch && matchesStatus ? '' : 'none';
     });
@@ -447,12 +487,17 @@ function handleResultsFilter() {
  */
 function handleDownloadXml() {
     try {
+        if (appState.results.length === 0) {
+            showToast('No results to export', 'warning');
+            return;
+        }
         const xml = generateXML(appState.results, settings.defaultStatus);
         downloadFile(xml, 'animelist.xml', 'application/xml');
         showToast('XML downloaded', 'success');
         closeModal('exportModal');
     } catch (err) {
         showToast(`Export failed: ${err.message}`, 'error');
+        console.error('Export error:', err);
     }
 }
 
@@ -461,6 +506,10 @@ function handleDownloadXml() {
  */
 function handleDownloadXmlGz() {
     try {
+        if (appState.results.length === 0) {
+            showToast('No results to export', 'warning');
+            return;
+        }
         const xml = generateXML(appState.results, settings.defaultStatus);
         const compressed = pako.gzip(xml);
         const blob = new Blob([compressed], { type: 'application/gzip' });
@@ -468,12 +517,15 @@ function handleDownloadXmlGz() {
         const a = document.createElement('a');
         a.href = url;
         a.download = 'animelist.xml.gz';
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
         showToast('XML.GZ downloaded', 'success');
         closeModal('exportModal');
     } catch (err) {
         showToast(`Export failed: ${err.message}`, 'error');
+        console.error('Export error:', err);
     }
 }
 
@@ -482,12 +534,17 @@ function handleDownloadXmlGz() {
  */
 function handleDownloadJson() {
     try {
+        if (appState.results.length === 0) {
+            showToast('No results to export', 'warning');
+            return;
+        }
         const json = generateJSON(appState.results);
         downloadFile(json, 'animelist.json', 'application/json');
         showToast('JSON downloaded', 'success');
         closeModal('exportModal');
     } catch (err) {
         showToast(`Export failed: ${err.message}`, 'error');
+        console.error('Export error:', err);
     }
 }
 
@@ -496,12 +553,17 @@ function handleDownloadJson() {
  */
 function handleDownloadCsv() {
     try {
+        if (appState.results.length === 0) {
+            showToast('No results to export', 'warning');
+            return;
+        }
         const csv = generateCSV(appState.results);
         downloadFile(csv, 'animelist.csv', 'text/csv');
         showToast('CSV downloaded', 'success');
         closeModal('exportModal');
     } catch (err) {
         showToast(`Export failed: ${err.message}`, 'error');
+        console.error('Export error:', err);
     }
 }
 
@@ -525,6 +587,7 @@ function handleDownloadUnmatched() {
         closeModal('exportModal');
     } catch (err) {
         showToast(`Export failed: ${err.message}`, 'error');
+        console.error('Export error:', err);
     }
 }
 
@@ -533,12 +596,17 @@ function handleDownloadUnmatched() {
  */
 async function handleCopyXml() {
     try {
+        if (appState.results.length === 0) {
+            showToast('No results to copy', 'warning');
+            return;
+        }
         const xml = generateXML(appState.results, settings.defaultStatus);
         await navigator.clipboard.writeText(xml);
         showToast('XML copied to clipboard', 'success');
         closeModal('exportModal');
     } catch (err) {
         showToast(`Copy failed: ${err.message}`, 'error');
+        console.error('Copy error:', err);
     }
 }
 

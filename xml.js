@@ -10,18 +10,15 @@ import { escapeXml } from './utils.js';
 /**
  * Generate valid MyAnimeList XML
  * @param {Array} results - Search results array
- * @param {string} defaultStatus - Default status for unmached entries
+ * @param {string} defaultStatus - Default status for unmatched entries
  * @returns {string} Valid XML string
  */
 export function generateXML(results, defaultStatus = 'Plan to Watch') {
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    xml += '<myanimelist>\n';
-    xml += '  <myinfo>\n';
-    xml += '    <user_name></user_name>\n';
-    xml += '    <user_export_type>1</user_export_type>\n';
-    xml += '  </myinfo>\n';
+    if (!results || results.length === 0) {
+        return '<?xml version="1.0" encoding="UTF-8"?>\n<myanimelist>\n  <myinfo>\n    <user_name></user_name>\n    <user_export_type>1</user_export_type>\n  </myinfo>\n</myanimelist>';
+    }
 
-    // Map status values
+    // Map status values to MyAnimeList status codes
     const statusMap = {
         'Plan to Watch': 6,
         'Watching': 1,
@@ -30,20 +27,32 @@ export function generateXML(results, defaultStatus = 'Plan to Watch') {
         'Dropped': 4
     };
 
-    results.forEach((result) => {
-        if (!result.matched) {
-            // Skip unmatched entries
-            return;
-        }
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<myanimelist>\n';
+    xml += '  <myinfo>\n';
+    xml += '    <user_name></user_name>\n';
+    xml += '    <user_export_type>1</user_export_type>\n';
+    xml += '  </myinfo>\n';
 
-        const statusCode = statusMap[defaultStatus] || 6;
-        xml += '  <anime>\n';
-        xml += `    <series_animedb_id>${result.matched.id}</series_animedb_id>\n`;
-        xml += `    <series_title>${escapeXml(result.matched.title)}</series_title>\n`;
-        xml += `    <my_status>${defaultStatus}</my_status>\n`;
-        xml += '    <my_score>0</my_score>\n';
-        xml += '    <my_watched_episodes>0</my_watched_episodes>\n';
-        xml += '  </anime>\n';
+    // Filter and process matched results only
+    const matchedResults = results.filter(r => r.matched && r.matched.id);
+    
+    matchedResults.forEach((result) => {
+        try {
+            const statusCode = statusMap[defaultStatus] || 6;
+            const title = result.matched.title || result.original;
+            const animedDbId = result.matched.id || 0;
+
+            xml += '  <anime>\n';
+            xml += `    <series_animedb_id>${animedDbId}</series_animedb_id>\n`;
+            xml += `    <series_title>${escapeXml(title)}</series_title>\n`;
+            xml += `    <my_status>${escapeXml(defaultStatus)}</my_status>\n`;
+            xml += '    <my_score>0</my_score>\n';
+            xml += '    <my_watched_episodes>0</my_watched_episodes>\n';
+            xml += '  </anime>\n';
+        } catch (err) {
+            console.error('Error processing result:', result, err);
+        }
     });
 
     xml += '</myanimelist>';
@@ -56,24 +65,24 @@ export function generateXML(results, defaultStatus = 'Plan to Watch') {
  * @returns {string} JSON string
  */
 export function generateJSON(results) {
+    const matchedResults = results.filter(r => r.matched && r.matched.id);
+    
     const data = {
         version: '1.0',
         exportDate: new Date().toISOString(),
         totalTitles: results.length,
-        matchedTitles: results.filter(r => r.matched).length,
-        anime: results
-            .filter(r => r.matched)
-            .map(r => ({
-                original: r.original,
-                matched: r.matched.title,
-                english: r.matched.english,
-                romaji: r.matched.romaji,
-                year: r.matched.year,
-                id: r.matched.id,
-                episodes: r.matched.episodes,
-                format: r.matched.format,
-                status: r.matched.status
-            }))
+        matchedTitles: matchedResults.length,
+        anime: matchedResults.map(r => ({
+            original: r.original,
+            matched: r.matched.title,
+            english: r.matched.english || '',
+            romaji: r.matched.romaji || '',
+            year: r.matched.year || null,
+            id: r.matched.id,
+            episodes: r.matched.episodes || null,
+            format: r.matched.format || '',
+            status: r.matched.status || ''
+        }))
     };
 
     return JSON.stringify(data, null, 2);
@@ -88,14 +97,14 @@ export function generateCSV(results) {
     let csv = 'Index,Original Title,Matched Title,English,Romaji,Year,AniList ID,Episodes,Format,Status\n';
 
     results.forEach((result, index) => {
-        if (!result.matched) return;
+        if (!result.matched || !result.matched.id) return;
 
         const row = [
             index + 1,
-            `"${result.original.replace(/"/g, '""')}"`,
-            `"${result.matched.title.replace(/"/g, '""')}"`,
-            `"${result.matched.english.replace(/"/g, '""')}"`,
-            `"${result.matched.romaji.replace(/"/g, '""')}"`,
+            `"${(result.original || '').replace(/"/g, '""')}"`,
+            `"${(result.matched.title || '').replace(/"/g, '""')}"`,
+            `"${(result.matched.english || '').replace(/"/g, '""')}"`,
+            `"${(result.matched.romaji || '').replace(/"/g, '""')}"`,
             result.matched.year || '',
             result.matched.id,
             result.matched.episodes || '',
@@ -122,4 +131,3 @@ export function validateXML(xml) {
     } catch (err) {
         return false;
     }
-}
